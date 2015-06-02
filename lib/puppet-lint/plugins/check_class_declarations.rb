@@ -1,15 +1,14 @@
 # Public: Check the manifest for resource like class declarations that
-# don't actually pass any parameters
+# don't actually pass any parameters (in their most simple form)
 PuppetLint.new_check(:unquoted_node_name) do
   def check
     class_tokens = tokens.select { |token| token.type == :CLASS }
     class_tokens.each do |klass|
       class_token_idx = tokens.index(klass)
 
-      close_token = tokens[class_token_idx..-1].find { |token| token.type == :RBRACE }
-      close_token_idx = tokens.index(close_token)
+      close_distance = tokens[class_token_idx..-1].index { |token| token.type == :RBRACE }
 
-      condensed = tokens[class_token_idx..close_token_idx].reject { |token|
+      condensed = tokens[class_token_idx, close_distance+1].reject { |token|
         token.type == :WHITESPACE || token.type == :NEWLINE
       }
 
@@ -18,8 +17,7 @@ PuppetLint.new_check(:unquoted_node_name) do
         next
       end
 
-      colon_token = condensed.find { |token| token.type == :COLON }
-      colon_idx = condensed.index(colon_token)
+      colon_idx = condensed.index { |token| token.type == :COLON }
 
       # colon followed by closing brace or semicolon?
       if [ :SEMICOLON, :RBRACE ].include?(condensed[colon_idx+1].type)
